@@ -11,12 +11,14 @@ CONFIG += c++17
 SOURCES += \
     chessboard.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    startwindow.cpp
 
 HEADERS += \
     chessboard.h \
     mainwindow.h \
-    shared.h
+    shared.h \
+    startwindow.h
 
 FORMS += \
     mainwindow.ui

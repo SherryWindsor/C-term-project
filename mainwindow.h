@@ -16,6 +16,10 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(QWidget *parent = nullptr);
+    Chessboard* getchessboard()const
+    {
+        return m_chessboard;
+    }
     ~MainWindow();
 
 private:

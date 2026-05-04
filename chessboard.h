@@ -4,11 +4,16 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include"shared.h"
+
+
 class Chessboard : public QWidget //继承
 {
     Q_OBJECT
 public:
     explicit Chessboard(QWidget *parent = nullptr);
+
+    // 设置游戏模式（通过公共方法）
+    void setgamemode(Gamemode mode);
 
 protected:
     //绘画
@@ -35,6 +40,7 @@ private:
     int evaluatescore(int row,int col,Role role1);//评分函数
     int evaluatesumscore();//判断整个局势的优势方
     int alphabeta(int n,int a,int b,bool currentrole);//alphabeta算法 n为递归层数 a为参数alpha b为参数beta
+    Gamemode gamemode=PVP; //初始化游戏模式
 signals:
 };
 

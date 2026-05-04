@@ -11,13 +11,12 @@ enum Role
     COMPUTER
 
 };
-enum Gamemode
+enum Gamemode //枚举游戏模式
 {
-    //人人对战
     PVP,
-    //人机对战
     PVE
 };
+
 enum Score //设计评分规则 便于人机根据算法决定落子的优先级
 {
     //赢

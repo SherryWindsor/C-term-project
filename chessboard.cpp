@@ -115,7 +115,10 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
         }
         else
         {
-            computermove();
+            if(gamemode==PVE)
+            {
+                computermove();
+            }
         }
     }
 }
@@ -235,7 +238,7 @@ int Chessboard::evaluatescore(int row,int col,Role role1)
                 break;
             }
         }
-        if(block>2)
+        if(block>=2)
         {
             continue;
         }
@@ -363,123 +366,194 @@ int Chessboard::alphabeta(int n,int a,int b,bool currentrole)
 }
 void Chessboard::computermove() //人机移动
 {
-    int bestscore=-1000000;
-    int bestrow=-1; //初始化人机的行和列
-    int bestcol=-1;
-    bool has_neighbour[15][15]={false}; //初始化变量
-    for(int m=0;m<chessboardline;m++) //遍历所有点
+    int bestrow = -1;
+    int bestcol = -1;
+    int bestscore = -1000000;
+    bool move_decided = false; // 用于标记是否已确定落子
+
+    // 存储关键威胁点，最大不超过棋盘上空格总数 225
+    QPoint player_threats[225];
+    int player_count = 0;
+    QPoint ai_threats[225];
+    int ai_count = 0;
+
+    // 扫描棋盘找威胁
+    for(int i = 0; i < chessboardline; i++)
     {
-        for(int n=0;n<chessboardline;n++)
+        for(int j = 0; j < chessboardline; j++)
         {
-            if(spot[m][n]!=EMPTY)
+            if(spot[i][j] == EMPTY)
             {
-                for(int dm=-2;dm<=2;dm++) //给最近两格的所有点都标为有邻居
+                int player_score = evaluatescore(i, j, PLAYER);
+                int ai_score = evaluatescore(i, j, COMPUTER);
+
+                // 玩家威胁点收集
+                if(player_score >= WIN || player_score >= LIVE_FOUR || player_score >= RUSH_FOUR || player_score >= LIVE_THREE)
                 {
-                    for(int dn=-2;dn<=2;dn++)
-                    {
-                        int am=m+dm;
-                        int an=n+dn;
-                        if(am >= 0 && am < chessboardline && an >= 0 && an < chessboardline)
+                    player_threats[player_count].setX(i);
+                    player_threats[player_count].setY(j);
+                    player_count++;
+                }
+
+                // AI 自己关键点收集
+                if(ai_score >= WIN || ai_score >= LIVE_FOUR)
+                {
+                    ai_threats[ai_count].setX(i);
+                    ai_threats[ai_count].setY(j);
+                    ai_count++;
+                }
+            }
+        }
+    }
+
+    // 1. AI 连五 → 立即落子
+    for(int idx = 0; idx < ai_count; idx++)
+    {
+        int x = ai_threats[idx].x();
+        int y = ai_threats[idx].y();
+        if(evaluatescore(x, y, COMPUTER) >= WIN)
+        {
+            bestrow = x;
+            bestcol = y;
+            move_decided = true;
+            break;
+        }
+    }
+
+    // 2. 玩家连五 → 必须堵
+    if(!move_decided)
+    {
+        for(int idx = 0; idx < player_count; idx++)
+        {
+            int x = player_threats[idx].x();
+            int y = player_threats[idx].y();
+            if(evaluatescore(x, y, PLAYER) >= WIN)
+            {
+                bestrow = x;
+                bestcol = y;
+                move_decided = true;
+                break;
+            }
+        }
+    }
+
+    // 3. 玩家活四 → 必须堵
+    if(!move_decided)
+    {
+        for(int idx = 0; idx < player_count; idx++)
+        {
+            int x = player_threats[idx].x();
+            int y = player_threats[idx].y();
+            int score = evaluatescore(x, y, PLAYER);
+            if(score >= LIVE_FOUR || score >= RUSH_FOUR)
+            {
+                bestrow = x;
+                bestcol = y;
+                move_decided = true;
+                break;
+            }
+        }
+    }
+
+    // 4. 玩家双活三 → 优先堵
+    if(!move_decided)
+    {
+        int max_threat = -1;
+        for(int idx = 0; idx < player_count; idx++)
+        {
+            int x = player_threats[idx].x();
+            int y = player_threats[idx].y();
+            int score = evaluatescore(x, y, PLAYER);
+            if(score >= LIVE_THREE && score > max_threat)
+            {
+                max_threat = score;
+                bestrow = x;
+                bestcol = y;
+            }
+        }
+        if(max_threat > 0)
+            move_decided = true;
+    }
+
+    // 5. AI 活四/活三 → 进攻
+    if(!move_decided)
+    {
+        int max_attack = -1;
+        for(int idx = 0; idx < ai_count; idx++)
+        {
+            int x = ai_threats[idx].x();
+            int y = ai_threats[idx].y();
+            int score = evaluatescore(x, y, COMPUTER);
+            if(score >= LIVE_FOUR || score >= LIVE_THREE)
+            {
+                if(score > max_attack)
+                {
+                    max_attack = score;
+                    bestrow = x;
+                    bestcol = y;
+                }
+            }
+        }
+        if(max_attack > 0)
+            move_decided = true;
+    }
+
+    // 6. 没有紧急威胁 → 普通评分选择最优点
+    if(!move_decided)
+    {
+        bool has_neighbour[15][15] = {false};
+        for(int m = 0; m < chessboardline; m++)
+        {
+            for(int n = 0; n < chessboardline; n++)
+            {
+                if(spot[m][n] != EMPTY)
+                {
+                    for(int dm = -2; dm <= 2; dm++)
+                        for(int dn = -2; dn <= 2; dn++)
                         {
-                            has_neighbour[am][an]=true;
+                            int am = m + dm;
+                            int an = n + dn;
+                            if(am >= 0 && am < chessboardline && an >= 0 && an < chessboardline)
+                                has_neighbour[am][an] = true;
                         }
+                }
+            }
+        }
+
+        for(int i = 0; i < chessboardline; i++)
+        {
+            for(int j = 0; j < chessboardline; j++)
+            {
+                if(spot[i][j] == EMPTY && has_neighbour[i][j])
+                {
+                    spot[i][j] = COMPUTER;
+                    int currentscore = alphabeta(2, -100000, 100000, false);
+                    spot[i][j] = EMPTY;
+                    int attack = evaluatescore(i, j, COMPUTER);
+                    int defense = evaluatescore(i, j, PLAYER);
+                    int totalscore = attack * 2 + defense * 5 + currentscore;
+                    if(totalscore > bestscore)
+                    {
+                        bestscore = totalscore;
+                        bestrow = i;
+                        bestcol = j;
                     }
                 }
             }
         }
     }
-    for(int i=0;i<chessboardline;i++) //遍历所有的点
-    {
-        for(int j=0;j<chessboardline;j++)
-        {
-            if(spot[i][j]==EMPTY)
-            {
-                int attack=evaluatescore(i,j,COMPUTER);
-                int defense=evaluatescore(i,j,PLAYER);
-                if(attack>=WIN)
-                {
-                    bestrow=i;
-                    bestcol=j;
-                    goto executemove;
-                }
-                if(defense>=WIN)
-                {
-                    bestrow=i;
-                    bestcol=j;
-                    goto executemove;
-                }
-                else if(defense>=LIVE_FOUR&&attack<WIN)
-                {
-                    bestrow = i;
-                    bestcol = j;
-                    goto executemove;
-                }
-                else if(defense>=RUSH_FOUR&&attack<WIN)
-                {
-                    bestrow = i;
-                    bestcol = j;
-                    goto executemove;
-                }
-                else if(defense>=LIVE_THREE&&attack<LIVE_FOUR)
-                {
-                    bestrow = i;
-                    bestcol = j;
-                    goto executemove;
-                }
-                if(has_neighbour[i][j]==false)
-                {
-                    continue;
-                }
-                spot[i][j]=COMPUTER;
-                int currentscore=alphabeta(2,-100000,100000,false);
-                spot[i][j]=EMPTY;
-                int totalscore;
-                totalscore=attack+defense*10+currentscore;
-                if(totalscore>bestscore) //如果当前这个点的分数比前面所有点中的最高分还高 就暂定下在这里
-                {
-                    bestscore=totalscore;
-                    bestrow=i;
-                    bestcol=j;
-                }
-            }
-        }
-    }
-    if(bestrow==-1)
-    {
-        bestscore=-1000000;
-        for(int i=0;i<chessboardline;i++)
-        {
-            for(int j=0;j<chessboardline;j++)
-            {
-                if(spot[i][j]!=EMPTY)
-                {
-                    continue;
-                }
-                int attack=evaluatescore(i,j,COMPUTER);
-                int defense=evaluatescore(i,j,PLAYER);
-                spot[i][j]=COMPUTER;
-                int currentscore=alphabeta(2, -1000000, 1000000, false);
-                spot[i][j]=EMPTY;
-                int totalscore=attack+defense*3+currentscore;
-                if(totalscore>bestscore)
-                {
-                    bestscore=totalscore;
-                    bestrow=i;
-                    bestcol=j;
-                }
-            }
-        }
-    }
-    executemove:
 
-        if((bestrow>=0&&bestrow<chessboardline)&&(bestcol>=0&&bestcol<chessboardline))
-        {
-            spot[bestrow][bestcol]=COMPUTER; //遍历完所有点后 人机会把棋子下在最优点上
-            update(); //更新绘画事件
-        }
-        bool computerwin=iswin(bestrow,bestcol,COMPUTER);
-        if(computerwin==true)
-        {
-            QMessageBox::information(this,"游戏结束","人机获胜");
-        }
+    // 最终落子
+    if(bestrow >= 0 && bestcol >= 0)
+    {
+        spot[bestrow][bestcol] = COMPUTER;
+        update();
+    }
+
+    if(iswin(bestrow, bestcol, COMPUTER))
+        QMessageBox::information(this, "游戏结束", "人机获胜");
+}
+void Chessboard::setgamemode(Gamemode mode)
+{
+    gamemode = mode;
 }
