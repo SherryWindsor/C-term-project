@@ -4,7 +4,7 @@
 #include<QMouseEvent>
 #include<QMessageBox>
 Chessboard::Chessboard(QWidget *parent)
-    : QWidget{parent},hoverpaint(false),hoverpointrow(-1),hoverpointcol(-1)
+    : QWidget{parent},hoverpaint(false),hoverpointrow(-1),hoverpointcol(-1),historycount(0)
 {//初始化列表 给绘制悬停点的判断赋值为0 悬停点的行和列赋值为-1 即让悬停点无效
     for(int i=0;i<chessboardline;i++) //横坐标
     {
@@ -121,6 +121,7 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
             spot[rowx][coly]=PLAYER;//只有玩家才可以点击
             //手动更新绘画事件
             update();
+            recordstep(rowx,coly,PLAYER);
             bool playerwin=iswin(rowx,coly,PLAYER);
             if(playerwin==true)
             {
@@ -137,6 +138,7 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
             {
                 spot[rowx][coly]=PLAYER;
                 update();
+                recordstep(rowx,coly,PLAYER);
                 bool player1win=iswin(rowx,coly,PLAYER);
                 if(player1win==true)
                 {
@@ -151,6 +153,7 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
             {
                 spot[rowx][coly]=COMPUTER;
                 update();
+                recordstep(rowx,coly,COMPUTER);
                 bool player2win=iswin(rowx,coly,COMPUTER);
                 if(player2win==true)
                 {
@@ -590,12 +593,84 @@ void Chessboard::computermove() //人机移动
     {
         spot[bestrow][bestcol] = COMPUTER;
         update();
+        recordstep(bestrow,bestcol,COMPUTER);
     }
 
     if(iswin(bestrow, bestcol, COMPUTER))
+    {
         QMessageBox::information(this, "游戏结束", "人机获胜");
+    }
 }
 void Chessboard::setgamemode(Gamemode mode)
 {
     gamemode = mode;
 }
+
+
+void Chessboard::recordstep(int row, int col, Role role3)
+{
+    if(historycount>=MAXSTEP)
+    {
+        return;
+    }
+    else
+    {
+        historyrow[historycount]=row; //先给数组赋值后给下标加一
+        historycol[historycount]=col;
+        historyrole[historycount]=role3;
+        historycount++;
+    }
+}
+
+void Chessboard::regretstep()
+{
+    if(historycount==0) //棋盘已经是空着的了
+    {
+        return;
+    }
+    else
+    {
+        historycount--; //先给下标减一后访问数组的值
+        int row=historyrow[historycount];
+        int col=historycol[historycount];
+        spot[row][col]=EMPTY;
+    }
+}
+
+void Chessboard::regret()
+{
+    if(gamemode==PVE)
+    {
+        if(historycount<2)
+        {
+            QMessageBox::information(this,"提示","步数不足，无法悔棋");
+            return;
+        }
+        else
+        {
+            regretstep(); //撤回人机的一步
+            regretstep(); //撤回玩家的一步
+        }
+    }
+    else
+    {
+        if(historycount<1)
+        {
+            QMessageBox::information(this,"提示","步数不足，无法悔棋");
+            return;
+        }
+        else
+        {
+            Role temprole=historyrole[historycount-1]; //用临时角色变量记录悔棋这步的动作发出者 方便后续重新从这个玩家开始继续游戏
+            regretstep(); //悔棋 此时这一步的全部变量都被清除
+            currentrole=temprole;
+        }
+    }
+    update();
+}
+
+void Chessboard::draw()
+{
+    QMessageBox::information(this,"提示","对局结束，双方平局");
+}
+

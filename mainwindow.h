@@ -2,7 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include<QPushButton>
 #include"chessboard.h"
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -26,5 +28,7 @@ private:
     Ui::MainWindow *ui;
     //棋盘类
     Chessboard *m_chessboard;
+    QPushButton *button1;
+    QPushButton *button2;
 };
 #endif // MAINWINDOW_H

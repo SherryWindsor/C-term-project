@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include"shared.h"
 
+#define MAXSTEP 225 //共225个可能下棋的点
 
 class Chessboard : public QWidget //继承
 {
@@ -42,6 +43,20 @@ private:
     int alphabeta(int n,int a,int b,bool currentrole);//alphabeta算法 n为递归层数 a为参数alpha b为参数beta
     Gamemode gamemode=PVP; //初始化游戏模式
     Role currentrole=PLAYER;
+
+    //不同功能的函数
+private:
+    int historyrow[MAXSTEP]; //上一次落子的行 （最多225次落子）
+    int historycol[MAXSTEP]; //上一次落子的列
+    Role historyrole[MAXSTEP]; //上一次落子的对象
+    int historycount; //记录上一次落子是全局中的第几次
+
+    void recordstep(int row,int col,Role role3);
+    void regretstep();
+
+public slots:
+    void regret(); //悔棋槽函数 方便链接按钮
+    void draw(); //和棋槽函数 方便链接按钮
 signals:
 };
 

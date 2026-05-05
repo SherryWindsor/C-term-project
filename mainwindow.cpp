@@ -24,6 +24,14 @@ MainWindow::MainWindow(QWidget *parent)
     QVBoxLayout*mylayout=new QVBoxLayout(centerWidget);
     //将棋盘控件添加到垂直布局中去，让布局管理器管理它的位置和大小
     mylayout->addWidget(m_chessboard);
+
+    button1=new QPushButton("悔棋",this);
+    button1->move(650,100);
+    connect(button1,&QPushButton::clicked,m_chessboard,&Chessboard::regret);
+
+    button2=new QPushButton("和棋",this);
+    button2->move(800,100);
+    connect(button2,&QPushButton::clicked,m_chessboard,&Chessboard::draw);
 }
 MainWindow::~MainWindow()
 {
