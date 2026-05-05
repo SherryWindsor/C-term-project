@@ -39,11 +39,22 @@ void Chessboard::paintEvent(QPaintEvent *event)
     if(hoverpaint==true&&(hoverpointrow>=0&&hoverpointrow<chessboardline)&&(hoverpointcol>=0&&hoverpointcol<chessboardline)&&spot[hoverpointrow][hoverpointcol]==EMPTY)
     //只写if（hoverpoint&&spot[hoverpointrow][hoverpointcol]==EMPTY）逻辑也成立 因为下方已经判断了悬停点的横纵坐标只能来源于在规定范围内的鼠标移动坐标 rowx coly
     {
-        //设置笔刷颜色
-        painter1.setBrush(Qt::black);
-        //绘制椭圆(Qpoint(center),int rx,int ry)
-        //rowx不能直接使用 因为它是鼠标移动的局部变量 但是可以使用hoverpointrow 因为它是在头文件中定义的 且在下面赋值等于rowx的变量
-        painter1.drawEllipse(QPoint(margin+hoverpointrow*cellsize,margin+hoverpointcol*cellsize),cellsize/6,cellsize/6);
+        if(currentrole==PLAYER)
+        {
+            //设置笔刷颜色
+            painter1.setBrush(Qt::black);
+            //绘制椭圆(Qpoint(center),int rx,int ry)
+            //rowx不能直接使用 因为它是鼠标移动的局部变量 但是可以使用hoverpointrow 因为它是在头文件中定义的 且在下面赋值等于rowx的变量
+            painter1.drawEllipse(QPoint(margin+hoverpointrow*cellsize,margin+hoverpointcol*cellsize),cellsize/6,cellsize/6); //设置悬停点大小
+        }
+        else if(currentrole==COMPUTER)
+        {
+            //设置笔刷颜色
+            painter1.setBrush(Qt::white);
+            //绘制椭圆(Qpoint(center),int rx,int ry)
+            //rowx不能直接使用 因为它是鼠标移动的局部变量 但是可以使用hoverpointrow 因为它是在头文件中定义的 且在下面赋值等于rowx的变量
+            painter1.drawEllipse(QPoint(margin+hoverpointrow*cellsize,margin+hoverpointcol*cellsize),cellsize/6,cellsize/6); //设置悬停点大小
+        }
     }
     //绘制棋子
     for(int i=0;i<chessboardline;i++)
@@ -104,20 +115,51 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
     //判断鼠标点击是否在棋盘中 即是否鼠标所在位置的相对坐标在规定范围内（即0～14） 且这个点没有棋子
     if((rowx>=0&&rowx<chessboardline)&&(coly>=0&&coly<chessboardline)&&spot[rowx][coly]==EMPTY)
     {
-        //插入数据
-        spot[rowx][coly]=PLAYER;//只有玩家才可以点击
-        //手动更新绘画事件
-        update();
-        bool playerwin=iswin(rowx,coly,PLAYER);
-        if(playerwin==true)
+        if(gamemode==PVE)
         {
-            QMessageBox::information(this,"游戏结束","玩家获胜");
+            //插入数据
+            spot[rowx][coly]=PLAYER;//只有玩家才可以点击
+            //手动更新绘画事件
+            update();
+            bool playerwin=iswin(rowx,coly,PLAYER);
+            if(playerwin==true)
+            {
+                QMessageBox::information(this,"游戏结束","玩家获胜");
+            }
+            else
+            {
+                computermove();
+            }
         }
         else
         {
-            if(gamemode==PVE)
+            if(currentrole==PLAYER)
             {
-                computermove();
+                spot[rowx][coly]=PLAYER;
+                update();
+                bool player1win=iswin(rowx,coly,PLAYER);
+                if(player1win==true)
+                {
+                    QMessageBox::information(this,"游戏结束","黑棋胜利");
+                }
+                else
+                {
+                    currentrole=COMPUTER;
+                }
+            }
+            else if(currentrole==COMPUTER)
+            {
+                spot[rowx][coly]=COMPUTER;
+                update();
+                bool player2win=iswin(rowx,coly,COMPUTER);
+                if(player2win==true)
+                {
+                    QMessageBox::information(this,"游戏结束","白棋胜利");
+                }
+                else
+                {
+                    currentrole=PLAYER;
+                }
             }
         }
     }

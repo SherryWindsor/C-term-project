@@ -27,3 +27,12 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resource.qrc
+
+DISTFILES += \
+    image/微信图片_20260505004547_521_4.jpg \
+    image/微信图片_20260505004547_521_4.png \
+    image/微信图片_20260505004547_521_4.png \
+    image/微信图片_20260505004547_521_4.png

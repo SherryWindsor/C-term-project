@@ -35,4 +35,7 @@ enum Score //设计评分规则 便于人机根据算法决定落子的优先级
     SLEEP_TWO=100
 };
 
+//图片路径
+#define STARTGAME_BACKGROUND ":/image/003.png"
+
 #endif // SHARED_H

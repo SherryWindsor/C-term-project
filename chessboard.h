@@ -41,6 +41,7 @@ private:
     int evaluatesumscore();//判断整个局势的优势方
     int alphabeta(int n,int a,int b,bool currentrole);//alphabeta算法 n为递归层数 a为参数alpha b为参数beta
     Gamemode gamemode=PVP; //初始化游戏模式
+    Role currentrole=PLAYER;
 signals:
 };
 
