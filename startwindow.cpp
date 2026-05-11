@@ -1,5 +1,6 @@
 #include "startwindow.h"
 #include "shared.h"
+#include "subwindow.h"
 #include <QVBoxLayout>
 
 StartWindow::StartWindow(QWidget *parent)
@@ -47,7 +48,7 @@ void StartWindow::load_startgamebackground()
 
 void StartWindow::startPVP()
 {
-    MainWindow *w=new MainWindow();
+    subwindow *w=new subwindow();
     w->show();
     this->close();
 }
@@ -59,6 +60,7 @@ void StartWindow::startPVE()
 
     // 设置棋盘模式为 PVE
     w->getchessboard()->setgamemode(PVE);
-
+    w->getchessboard()->setsubgamemode(TRADITIONAL); //此处设定只为给函数传参 与模式无关
+    w->update_mode_button(PVE,TRADITIONAL); //调用模式更新函数
     this->close();
 }

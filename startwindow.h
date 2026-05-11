@@ -6,7 +6,6 @@
 #include "mainwindow.h"
 #include "shared.h"
 
-#include <QWidget>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>

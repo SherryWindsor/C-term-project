@@ -3,6 +3,9 @@
 #include<QDebug>
 #include<QMouseEvent>
 #include<QMessageBox>
+#include<cstdlib>
+#include <ctime>
+
 Chessboard::Chessboard(QWidget *parent)
     : QWidget{parent},hoverpaint(false),hoverpointrow(-1),hoverpointcol(-1),historycount(0)
 {//初始化列表 给绘制悬停点的判断赋值为0 悬停点的行和列赋值为-1 即让悬停点无效
@@ -112,6 +115,31 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
 {
     int rowx=(event->x()-margin+cellsize/2)/cellsize;
     int coly=(event->y()-margin+cellsize/2)/cellsize;
+    if((rowx>=0&&rowx<chessboardline)&&(coly>=0&&coly<chessboardline))
+    {
+        if(click_fly_baseball==true)
+        {
+            if(spot[rowx][coly]==EMPTY) //技能没有发动成功 不改变现在技能正在发动的状态
+            {
+                QMessageBox::information(this,"提示","此处没有棋子可以打飞～");
+                return;
+            }
+            else if(spot[rowx][coly]==currentrole) //技能没有发动成功 不改变现在技能正在发动的状态
+            {
+                QMessageBox::information(this,"提示","啊？打飞自己的棋子吗？");
+                return;
+            }
+            else
+            {
+                spot[rowx][coly]=EMPTY;
+                update();
+                QMessageBox::information(this,"这是棒球","技能发动成功，呀嘞呀嘞～");
+                click_fly_baseball=false;
+                return;
+            }
+        }
+    }
+
     //判断鼠标点击是否在棋盘中 即是否鼠标所在位置的相对坐标在规定范围内（即0～14） 且这个点没有棋子
     if((rowx>=0&&rowx<chessboardline)&&(coly>=0&&coly<chessboardline)&&spot[rowx][coly]==EMPTY)
     {
@@ -136,6 +164,39 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
         {
             if(currentrole==PLAYER)
             {
+                if(look_PLAYER_history==true)
+                {
+                    spot[rowx][coly]=PLAYER;
+                    update();
+                    spot[rowx][coly]=EMPTY;
+                    update();
+                    QMessageBox::information(this,"提示","看到黑历史，收到精神攻击，出现幻觉，所下的棋子不在原位");
+                    look_PLAYER_history=false;
+                    static bool first=true;
+                    if(first==true)
+                    {
+                        std::srand(std::time(nullptr));
+                        first=false; //确保初始化随机数种子的过程只进行一次
+                    }
+                    int count=0; //记录数组下标
+                    for(int i=0;i<chessboardline;i++)
+                    {
+                        for(int j=0;j<chessboardline;j++)
+                        {
+                            if(spot[i][j]==EMPTY)
+                            {
+                                lookrow[count]=i;
+                                lookcol[count]=j;
+                                count++;
+                            }
+                        }
+                    }
+                    int number=std::rand()%count;
+                    rowx=lookrow[number];
+                    coly=lookcol[number];
+                    spot[rowx][coly]=PLAYER;
+                    update();
+                }
                 spot[rowx][coly]=PLAYER;
                 update();
                 recordstep(rowx,coly,PLAYER);
@@ -144,13 +205,60 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
                 {
                     QMessageBox::information(this,"游戏结束","黑棋胜利");
                 }
+                else if (isboardfull())
+                {
+                    draw();
+                    return;
+                }
                 else
                 {
-                    currentrole=COMPUTER;
+                    if(keepcurrentrole==true)
+                    {
+                        currentrole=PLAYER;
+                        keepcurrentrole=false;
+                    }
+                    else
+                    {
+                        currentrole=COMPUTER;
+                    }
+
                 }
             }
             else if(currentrole==COMPUTER)
             {
+                if(look_COMPUTER_history==true)
+                {
+                    spot[rowx][coly]=COMPUTER;
+                    update();
+                    spot[rowx][coly]=EMPTY;
+                    update();
+                    QMessageBox::information(this,"提示","看到黑历史，收到精神攻击，出现幻觉，所下的棋子不在原位");
+                    look_COMPUTER_history=false;
+                    static bool first=true;
+                    if(first==true)
+                    {
+                        std::srand(std::time(nullptr));
+                        first=false; //确保初始化随机数种子的过程只进行一次
+                    }
+                    int count=0; //记录数组下标
+                    for(int i=0;i<chessboardline;i++)
+                    {
+                        for(int j=0;j<chessboardline;j++)
+                        {
+                            if(spot[i][j]==EMPTY)
+                            {
+                                lookrow[count]=i;
+                                lookcol[count]=j;
+                                count++;
+                            }
+                        }
+                    }
+                    int number=std::rand()%count;
+                    rowx=lookrow[number];
+                    coly=lookcol[number];
+                    spot[rowx][coly]=COMPUTER;
+                    update();
+                }
                 spot[rowx][coly]=COMPUTER;
                 update();
                 recordstep(rowx,coly,COMPUTER);
@@ -159,9 +267,22 @@ void Chessboard::mousePressEvent(QMouseEvent *event)
                 {
                     QMessageBox::information(this,"游戏结束","白棋胜利");
                 }
+                else if (isboardfull())
+                {
+                    draw();
+                    return;
+                }
                 else
                 {
-                    currentrole=PLAYER;
+                    if(keepcurrentrole==true)
+                    {
+                        currentrole=COMPUTER;
+                        keepcurrentrole=false;
+                    }
+                    else
+                    {
+                        currentrole=PLAYER;
+                    }
                 }
             }
         }
@@ -637,6 +758,20 @@ void Chessboard::regretstep()
     }
 }
 
+bool Chessboard::can_use_skill()
+{
+    if(cannot_use_skill==true)
+    {
+        cannot_use_skill=false;
+        QMessageBox::information(this,"提示","对手发动了擒拿擒拿技能，本局玩家不可再发动技能");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 void Chessboard::regret()
 {
     if(gamemode==PVE)
@@ -674,3 +809,502 @@ void Chessboard::draw()
     QMessageBox::information(this,"提示","对局结束，双方平局");
 }
 
+void Chessboard::fly_sand_go_stone() //随即移走对方的一颗棋子 一局只能发动一次
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    Role opponentrole=(currentrole==PLAYER?COMPUTER:PLAYER); //不应将opponentrole的定义和初始化写在头文件里 否则只初始化一次 只能删一个角色的棋子 应写在函数中 每次调用函数时根据当前角色对opponent进行动态初始化
+    static bool first=true;
+    bool skill_fly_canuse=false;
+
+    if(currentrole==PLAYER)
+    {
+        skill_fly_canuse=!skill_fly_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_fly_canuse=!skill_fly_COMPUTER_used;
+    }
+
+    if(first==true)
+    {
+        std::srand(std::time(nullptr));
+        first=false; //确保初始化随机数种子的过程只进行一次
+    }
+
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_fly_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮飞沙走石技能已经使用过，技能发动失败");
+            return;
+
+        }
+        else
+        {
+            int count=0; //初始化对手落子的数组下标
+            for(int i=0;i<chessboardline;i++)
+            {
+                for(int j=0;j<chessboardline;j++)
+                {
+                    if(spot[i][j]==opponentrole)
+                    {
+                        opponentrow[count]=i;
+                        opponentcol[count]=j;
+                        count++;
+                    }
+                }
+            }
+            if(count==0)
+            {
+                QMessageBox::information(this,"提示","对方棋盘上没有棋子，技能发动失败");
+                return;
+            }
+            int number=std::rand()%count; //生成随机数 对count取模 保证最后产生的数组下标小于对方现有的棋子数对应的count
+            int temprow=opponentrow[number];
+            int tempcol=opponentcol[number];
+            spot[temprow][tempcol]=EMPTY; //清除生成的随机位置上的对手的棋子
+            QMessageBox::information(this,"飞沙走石","技能发动成功，什刹海见！");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_fly_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_fly_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::strength_uproot_mountain() //掀翻整个棋盘 即清空棋盘上的所有棋子 一局只能发动一次
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    bool skill_strength_canuse=false;
+    if(currentrole==PLAYER)
+    {
+        skill_strength_canuse=!skill_strength_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_strength_canuse=!skill_strength_COMPUTER_used;
+    }
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_strength_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮力拔山兮技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            for(int i=0;i<chessboardline;i++)
+            {
+                for(int j=0;j<chessboardline;j++)
+                {
+                    spot[i][j]=EMPTY; //清空棋盘
+                    update();
+                }
+            }
+            QMessageBox::information(this,"力拔山兮","技能发动成功，摔坏棋盘，离获胜更进一步！");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_strength_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_strength_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::still_like_stagnant_water() //暂停对方一回合 即己方可以连续下两回合棋 一局只能发动一次
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    bool skill_still_canuse=false;
+    if(currentrole==PLAYER)
+    {
+        skill_still_canuse=!skill_still_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_still_canuse=!skill_still_COMPUTER_used;
+    }
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_still_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮静如止水技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            keepcurrentrole=true;
+            QMessageBox::information(this,"静如止水","技能发动成功，凝结时间，冻结空气，对手已经完全动不了了！");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_still_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_still_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::this_is_baseball() //打飞对方的一颗棋子 可以用鼠标指定 一局只能发动一次
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    bool skill_baseball_canuse=false;
+    if(currentrole==PLAYER)
+    {
+        skill_baseball_canuse=!skill_baseball_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_baseball_canuse=!skill_baseball_COMPUTER_used;
+    }
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_baseball_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮这是棒球技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            click_fly_baseball=true;
+            QMessageBox::information(this,"技能发动成功","这叫棒球！");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_baseball_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_baseball_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::i_am_cleaning()
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    Role opponentrole=(currentrole==PLAYER?COMPUTER:PLAYER);
+    static bool first=true;
+    bool skill_cleaning_canuse=false;
+
+    if(first==true)
+    {
+        std::srand(std::time(nullptr));
+        first=false; //确保初始化随机数种子的过程只进行一次
+    }
+
+    if(currentrole==PLAYER)
+    {
+        skill_cleaning_canuse=!skill_cleaning_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_cleaning_canuse=!skill_cleaning_COMPUTER_used;
+    }
+
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_cleaning_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮我是保洁技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            int count=0;
+            for(int i=0;i<chessboardline;i++)
+            {
+                for(int j=0;j<chessboardline;j++)
+                {
+                    if(spot[i][j]==opponentrole)
+                    {
+                        cleaningrow[count]=i;
+                        cleaningcol[count]=j;
+                        count++;
+                    }
+                }
+            }
+            if(count==0)
+            {
+                QMessageBox::information(this,"提示","对方棋盘上没有棋子，技能发动失败");
+                return;
+            }
+            int rounds=std::rand()%3+1; //随机生成一个1～3之间的数字
+            for(int k=0;k<rounds;k++)
+            {
+                int number=std::rand()%count;
+                int temprow=cleaningrow[number];
+                int tempcol=cleaningcol[number];
+                spot[temprow][tempcol]=EMPTY;
+                update();
+                count--;
+                cleaningrow[number]=cleaningrow[count]; //用此时数组的最后一个行数和列数代替被删除的棋子的位置 防止删除完棋子之后再随机到这个位置没有棋子可删
+                cleaningcol[number]=cleaningcol[count];
+            }
+            QMessageBox::information(this,"技能发动成功","窝是包接");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_cleaning_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_cleaning_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::seize_hold()
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    bool skill_seize_canuse=false;
+    if(currentrole==PLAYER)
+    {
+        skill_seize_canuse=!skill_seize_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_seize_canuse=!skill_seize_COMPUTER_used;
+    }
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_seize_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮擒拿擒拿技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            cannot_use_skill=true;
+            QMessageBox::information(this,"技能发动成功","擒住天地之精华，拿得老师笑哈哈");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_seize_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_seize_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::find_gold_no_hide() //在棋盘上的随机空位出现一颗自己的棋子
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    static bool first=true;
+    bool skill_find_canuse=false;
+
+    if(first==true)
+    {
+        std::srand(std::time(nullptr));
+        first=false; //确保初始化随机数种子的过程只进行一次
+    }
+
+    if(currentrole==PLAYER)
+    {
+        skill_find_canuse=!skill_find_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_find_canuse=!skill_find_COMPUTER_used;
+    }
+
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_find_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮拾金不昧技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            int count=0; //记录数组下标
+            for(int i=0;i<chessboardline;i++)
+            {
+                for(int j=0;j<chessboardline;j++)
+                {
+                    if(spot[i][j]==EMPTY)
+                    {
+                        emptyrow[count]=i;
+                        emptycol[count]=j;
+                        count++;
+                    }
+                }
+            }
+            int number=std::rand()%count;
+            int temprow=emptyrow[number];
+            int tempcol=emptycol[number];
+            if(currentrole==PLAYER)
+            {
+                spot[temprow][tempcol]=PLAYER;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                spot[temprow][tempcol]=COMPUTER;
+            }
+            QMessageBox::information(this,"技能发动成功","你掉的是什刹海里的五子棋，还是羊汤里的五子棋呢？");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_find_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_find_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::look_at_embarrassing_history()
+{
+    if(can_use_skill()==false)
+    {
+        return;
+    }
+    bool skill_look_canuse=false;
+    if(currentrole==PLAYER)
+    {
+        skill_look_canuse=!skill_look_PLAYER_used;
+    }
+    else if(currentrole==COMPUTER)
+    {
+        skill_look_canuse=!skill_look_COMPUTER_used;
+    }
+    if((currentrole!=PLAYER)&&(currentrole!=COMPUTER)) //这段代码可以没有 只是为了补全逻辑
+    {
+        QMessageBox::information(this,"提示","未开局，不能使用技能");
+        return;
+    }
+    else
+    {
+        if(skill_look_canuse==false)
+        {
+
+            QMessageBox::information(this,"提示","本轮看黑历史技能已经使用过，技能发动失败");
+            return;
+        }
+        else
+        {
+            if(currentrole==PLAYER)
+            {
+                look_COMPUTER_history=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                look_PLAYER_history=true;
+            }
+
+            QMessageBox::information(this,"技能发动成功","油菜花田白衬衫男转头照片*1");
+            if (currentrole==PLAYER) //标记本轮技能已经使用
+            {
+                skill_look_PLAYER_used=true;
+            }
+            else if(currentrole==COMPUTER)
+            {
+                skill_look_COMPUTER_used=true;
+            }
+        }
+    }
+}
+
+void Chessboard::setsubgamemode(SubGamemode submode)
+{
+    subgamemode = submode;
+}
+
+Gamemode Chessboard::getgamemode() const
+{
+    return gamemode;
+}
+
+SubGamemode Chessboard::getsubgamemode() const
+{
+    return subgamemode;
+}
+
+
+bool Chessboard::isboardfull() // 判断棋盘是否下满（无空点 → 和棋）
+{
+    for (int i = 0; i < chessboardline; i++)
+    {
+        for (int j = 0; j < chessboardline; j++)
+        {
+
+            if (spot[i][j] == EMPTY) // 只要还有一个空位就没满
+                return false;
+        }
+    }
+    return true;  // 遍历完都没空位 满了
+}

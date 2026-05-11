@@ -12,13 +12,15 @@ SOURCES += \
     chessboard.cpp \
     main.cpp \
     mainwindow.cpp \
-    startwindow.cpp
+    startwindow.cpp \
+    subwindow.cpp
 
 HEADERS += \
     chessboard.h \
     mainwindow.h \
     shared.h \
-    startwindow.h
+    startwindow.h \
+    subwindow.h
 
 FORMS += \
     mainwindow.ui

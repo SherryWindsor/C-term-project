@@ -30,5 +30,16 @@ private:
     Chessboard *m_chessboard;
     QPushButton *button1;
     QPushButton *button2;
+    QPushButton *button3;
+    QPushButton *button4;
+    QPushButton *button5;
+    QPushButton *button6;
+    QPushButton *button7;
+    QPushButton *button8;
+    QPushButton *button9;
+    QPushButton *button10;
+public:
+    void update_mode_button(Gamemode gamemode1,SubGamemode subgamemode1);
+
 };
 #endif // MAINWINDOW_H

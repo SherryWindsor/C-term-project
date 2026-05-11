@@ -17,6 +17,12 @@ enum Gamemode //枚举游戏模式
     PVE
 };
 
+enum SubGamemode
+{
+    TRADITIONAL,
+    SKILL
+};
+
 enum Score //设计评分规则 便于人机根据算法决定落子的优先级
 {
     //赢

@@ -1,0 +1,10 @@
+release/chessboard.o
+release/main.o
+release/mainwindow.o
+release/startwindow.o
+release/subwindow.o
+release/qrc_resource.o
+release/moc_chessboard.o
+release/moc_mainwindow.o
+release/moc_startwindow.o
+release/moc_subwindow.o
